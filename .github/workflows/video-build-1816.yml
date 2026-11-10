@@ -1,0 +1,66 @@
+name: video-build-1816
+
+# Scratch recording-only build for the PR #1816 before/after video.
+# Lives only on the fork's video-build/* branches; never merged anywhere.
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'before or after'
+        required: true
+        type: choice
+        options:
+          - before
+          - after
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build apps/web (standalone)
+        working-directory: apps/web
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=8192
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          bun x next build --webpack
+          bun ../../scripts/prune-next-server-sourcemaps.ts .next
+
+      - name: Assemble standalone bundle
+        run: |
+          rm -rf bundle
+          mkdir -p bundle/apps/web/.next/static
+          cp -a apps/web/.next/standalone/. bundle/
+          cp -a apps/web/.next/static/. bundle/apps/web/.next/static/
+          cp -a apps/web/public bundle/apps/web/public
+          ls -la bundle/apps/web/server.js
+          du -sh bundle
+
+      - name: Pack bundle
+        run: |
+          tar -I 'zstd -6 -T0' -cf bundle.tar.zst -C bundle .
+          ls -la bundle.tar.zst
+
+      - name: Upload bundle as release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="vb1816-${{ inputs.variant }}-${{ github.run_id }}"
+          echo "release tag: $TAG"
+          gh release create "$TAG" bundle.tar.zst --prerelease \
+            --title "video build 1816 ${{ inputs.variant }} (run ${{ github.run_id }})" \
+            --notes "Scratch recording build for PR #1816 video. Delete after use."
