@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: monorepoRoot,
   // Use standalone output for dynamic routes and API endpoints
   // Temporarily disabled for Next.js 16 compatibility
-  // output: 'standalone',
+  output: 'standalone',
   // Transpile internal workspace packages to resolve TypeScript imports properly
   // This is necessary because these packages are not pre-built and use TypeScript source directly
   transpilePackages: [
