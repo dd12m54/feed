@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- Video-evidence MCP console (recording aid only, NOT part of any PR).
+     Copy into a worktree's apps/web/public/ so it is served same-origin,
+     then open /mcp-console.html?tool=<name>&args=<urlencoded JSON>&auto=1.
+     It POSTs a real JSON-RPC tools/call to /api/mcp with the X-Feed-Api-Key
+     header and renders the request and the full response on screen. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MCP JSON-RPC console — video evidence</title>
+<style>
+  body { background:#0b0e14; color:#e6e6e6; font-family: ui-monospace, Menlo, Consolas, monospace; margin:24px; }
+  h1 { font-size:20px; }
+  label { display:block; margin:12px 0 4px; color:#9fb4c8; font-size:14px; }
+  input, textarea { width:96%; background:#11161f; color:#e6e6e6; border:1px solid #33404f; border-radius:6px; padding:8px; font-size:16px; }
+  textarea { height:110px; }
+  button { margin:16px 0; padding:10px 28px; font-size:18px; background:#2f81f7; color:#fff; border:0; border-radius:6px; cursor:pointer; }
+  pre { background:#11161f; border:1px solid #33404f; border-radius:6px; padding:12px; font-size:15px; white-space:pre-wrap; word-break:break-word; max-height:300px; overflow:auto; }
+  .status { font-size:16px; color:#7ee787; }
+</style>
+</head>
+<body>
+<h1>POST /api/mcp — real MCP JSON-RPC <span style="color:#9fb4c8">tools/call</span></h1>
+<label>X-Feed-Api-Key (video agent: video-actor)</label>
+<input id="key" />
+<label>Tool name</label>
+<input id="tool" />
+<label>Arguments (JSON)</label>
+<textarea id="args"></textarea>
+<button id="send">Send tools/call</button>
+<div class="status" id="status"></div>
+<label>Request</label>
+<pre id="req">(not sent yet)</pre>
+<label>Response</label>
+<pre id="res">(not sent yet)</pre>
+<script>
+  const q = new URLSearchParams(location.search);
+  const DEFAULT_KEY = 'bab_live_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  document.getElementById('key').value = q.get('key') || DEFAULT_KEY;
+  document.getElementById('tool').value = q.get('tool') || '';
+  document.getElementById('args').value = q.get('args') || '{}';
+  async function send() {
+    const tool = document.getElementById('tool').value.trim();
+    let args = {};
+    try { args = JSON.parse(document.getElementById('args').value || '{}'); } catch (e) { /* keep {} */ }
+    const body = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } };
+    document.getElementById('req').textContent = 'POST /api/mcp\n' + JSON.stringify(body, null, 2);
+    document.getElementById('status').textContent = 'sending...';
+    try {
+      const res = await fetch('/api/mcp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Feed-Api-Key': document.getElementById('key').value.trim() },
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      let pretty = text;
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (e) { /* raw */ }
+      document.getElementById('status').textContent = 'HTTP ' + res.status;
+      document.getElementById('res').textContent = pretty;
+    } catch (err) {
+      document.getElementById('status').textContent = 'FETCH ERROR';
+      document.getElementById('res').textContent = String(err);
+    }
+  }
+  document.getElementById('send').addEventListener('click', send);
+  if (q.get('auto') === '1') setTimeout(send, 1500);
+</script>
+</body>
+</html>
