@@ -27,12 +27,12 @@ import {
   inArray,
   isNull,
   like,
-  lt,
   lte,
   markets,
   not,
   type Post,
   positions,
+  postCursorConditions,
   posts,
   reactions,
   tags,
@@ -164,18 +164,21 @@ class CachedDatabaseService {
         ];
 
         if (cursor) {
-          conditions.push(lt(posts.timestamp, new Date(cursor)));
+          conditions.push(...(await postCursorConditions(cursor)));
           conditions.push(lte(posts.timestamp, now));
         } else {
           conditions.push(lte(posts.timestamp, now));
         }
 
-        // Query posts from database (only from non-test users)
+        // Query posts from database (only from non-test users). The id
+        // tiebreaker makes the order total: posts can share a timestamp
+        // (it defaults to the transaction timestamp, and batch creation
+        // stamps one value onto many rows).
         const result = await db
           .select()
           .from(posts)
           .where(and(...conditions))
-          .orderBy(desc(posts.timestamp))
+          .orderBy(desc(posts.timestamp), desc(posts.id))
           .limit(limit)
           .offset(cursor ? 0 : offset);
 
