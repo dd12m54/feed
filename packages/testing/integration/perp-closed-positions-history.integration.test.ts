@@ -46,7 +46,7 @@ function guardDisposableTarget() {
     database.hostname === '127.0.0.1' &&
     database.port === '55685' &&
     database.username === 'symbiex' &&
-    /^\/feed_pr1705\d+$/.test(database.pathname);
+    /^\/feed_pr\d+$/.test(database.pathname);
   const ci =
     process.env.CI === 'true' &&
     process.env.GITHUB_ACTIONS === 'true' &&
