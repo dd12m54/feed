@@ -32,6 +32,7 @@ import {
   markets,
   not,
   type Post,
+  type PostFeedVisibilityOptions,
   positions,
   posts,
   reactions,
@@ -50,6 +51,31 @@ import {
   invalidateCache,
   invalidateCachePattern,
 } from './cache-service';
+
+/** Keep cursor text and viewer policy in separate, unambiguous key fields. */
+function postFeedCacheKey(
+  limit: number,
+  cursorOrOffset: string | number | undefined,
+  visibility: PostFeedVisibilityOptions | undefined,
+  authorId?: string
+): string {
+  const isCursor = typeof cursorOrOffset === 'string';
+  if (!visibility) {
+    const prefix = authorId === undefined ? '' : `${authorId}:`;
+    return isCursor
+      ? `${prefix}${limit}:cursor:${cursorOrOffset}`
+      : `${prefix}${limit}:offset:${cursorOrOffset || 0}`;
+  }
+  return JSON.stringify([
+    'post-visibility-v1',
+    authorId ?? null,
+    limit,
+    isCursor ? 'cursor' : 'offset',
+    cursorOrOffset ?? 0,
+    [...new Set(visibility.excludedAuthorIds ?? [])].sort(),
+    visibility.excludeDeadReposts === true,
+  ]);
+}
 
 /**
  * Cached Database Service Class
@@ -72,16 +98,14 @@ class CachedDatabaseService {
    */
   async getRecentPosts(
     limit = 100,
-    cursorOrOffset?: string | number
+    cursorOrOffset?: string | number,
+    visibility?: PostFeedVisibilityOptions
   ): Promise<Post[]> {
-    const isCursor = typeof cursorOrOffset === 'string';
-    const cacheKey = isCursor
-      ? `${limit}:cursor:${cursorOrOffset}`
-      : `${limit}:offset:${cursorOrOffset || 0}`;
+    const cacheKey = postFeedCacheKey(limit, cursorOrOffset, visibility);
 
     return getCacheOrFetch(
       cacheKey,
-      () => getDbInstance().getRecentPosts(limit, cursorOrOffset),
+      () => getDbInstance().getRecentPosts(limit, cursorOrOffset, visibility),
       {
         namespace: CACHE_KEYS.POSTS_LIST,
         ttl: DEFAULT_TTLS.POSTS_LIST,
@@ -95,16 +119,25 @@ class CachedDatabaseService {
   async getPostsByActor(
     authorId: string,
     limit = 100,
-    cursorOrOffset?: string | number
+    cursorOrOffset?: string | number,
+    visibility?: PostFeedVisibilityOptions
   ): Promise<Post[]> {
-    const isCursor = typeof cursorOrOffset === 'string';
-    const cacheKey = isCursor
-      ? `${authorId}:${limit}:cursor:${cursorOrOffset}`
-      : `${authorId}:${limit}:offset:${cursorOrOffset || 0}`;
+    const cacheKey = postFeedCacheKey(
+      limit,
+      cursorOrOffset,
+      visibility,
+      authorId
+    );
 
     return getCacheOrFetch(
       cacheKey,
-      () => getDbInstance().getPostsByActor(authorId, limit, cursorOrOffset),
+      () =>
+        getDbInstance().getPostsByActor(
+          authorId,
+          limit,
+          cursorOrOffset,
+          visibility
+        ),
       {
         namespace: CACHE_KEYS.POSTS_BY_ACTOR,
         ttl: DEFAULT_TTLS.POSTS_BY_ACTOR,
