@@ -253,7 +253,6 @@ import {
   comments,
   count,
   db,
-  decodePostCursor,
   desc,
   encodePostCursor,
   eq,
@@ -685,8 +684,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       userId,
       allFollowedIds,
       limit,
-      // This branch still pages by timestamp only; accept either cursor format.
-      cursor === undefined ? undefined : decodePostCursor(cursor).timestamp
+      cursor
     );
 
     // Filter out posts from blocked/muted users
@@ -860,11 +858,21 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       };
     });
 
+    // Continuation for the next page: the last fetched post's
+    // (timestamp, id), so a client can resume inside a group of posts
+    // that share one timestamp instead of skipping the rest of it.
+    const lastFetchedPost = postsResult[postsResult.length - 1];
+    const followingNextCursor =
+      postsResult.length === limit && lastFetchedPost
+        ? encodePostCursor(lastFetchedPost.timestamp, lastFetchedPost.id)
+        : null;
+
     const followingRes = NextResponse.json({
       success: true,
       posts: formattedFollowingPosts,
       limit,
       source: 'following',
+      nextCursor: followingNextCursor,
     });
     // Personalized (follows + moderation): never cacheable by shared caches.
     if (rateLimitInfo) addPrivateReadHeaders(followingRes, rateLimitInfo);
