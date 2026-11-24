@@ -52,12 +52,13 @@ export function LeaderboardTable({
   onSelectTrader,
   disabled = false,
   className,
+  onClick,
   ...props
 }: LeaderboardTableProps) {
   const dirFor = (col: LeaderboardSortColumn) => (onSort ? (sortBy === col ? sortDir : "none") : undefined);
 
   return (
-    <div className={cn("rounded-lg border border-border bg-card text-card-foreground", className)} {...props}>
+    <div className={cn("rounded-lg border border-border bg-card text-card-foreground", className)} {...props} onClick={disabled ? undefined : onClick}>
       <Table label="Net profit leaderboard">
         <TableCaption visuallyHidden>Player standings ranked by net trading profit in virtual points</TableCaption>
         <TableHeader>
