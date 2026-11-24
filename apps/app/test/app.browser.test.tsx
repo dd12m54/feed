@@ -88,7 +88,8 @@ function installMockNetwork() {
     return Response.json({});
   }) as typeof fetch;
 
-  class StubEventSource {
+  // Keep subscriptions available without opening a live /api/events connection.
+  class StubEventSource extends EventTarget {
     close() {}
   }
   globalThis.EventSource = StubEventSource as unknown as typeof EventSource;
