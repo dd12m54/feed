@@ -1,0 +1,90 @@
+name: Dot Feed UI evidence
+on:
+  push:
+    branches:
+      - evidence/dot-feed-ui-2192-2180-20261125
+permissions:
+  contents: read
+jobs:
+  capture:
+    if: github.repository == 'dd12m54/feed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: ['2192', '2180']
+    env:
+      PR: ${{ matrix.pr }}
+      TURBO_TELEMETRY_DISABLED: '1'
+      APP_URL: http://127.0.0.1:4173
+      OUTPUT_DIR: ${{ runner.temp }}/feed-evidence
+      BASE_SHA: bde9ad8eababacfa0ba48f3be76a2b28023a2258
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Verify the isolated capture checkout
+        run: |
+          set -euo pipefail
+          test "$(git merge-base "$BASE_SHA" HEAD)" = "$BASE_SHA"
+          test -z "$(git diff "$BASE_SHA" --name-only -- apps packages vendor)"
+          mkdir -p "$OUTPUT_DIR"
+      - uses: ./.github/actions/setup
+        with:
+          job: evidence
+          verification: 'false'
+          cache-verification: 'false'
+      - name: Prepare generated code and Chromium
+        run: |
+          set -euo pipefail
+          pnpm --filter @repo/design-system build
+          pnpm gen
+          pnpm --filter @repo/ui gen
+          pnpm exec playwright install --with-deps chromium
+      - name: Record identical before and after browser journeys
+        run: |
+          set -euo pipefail
+          app_pid=
+          stop() {
+            if [[ -n "$app_pid" ]]; then
+              kill "$app_pid" 2>/dev/null || true
+              wait "$app_pid" 2>/dev/null || true
+              app_pid=
+            fi
+          }
+          trap stop EXIT
+          for VARIANT in before after; do
+            export VARIANT
+            if [[ "$VARIANT" = after ]]; then
+              git apply --check "evidence/pr-$PR/product.patch"
+              git apply "evidence/pr-$PR/product.patch"
+            fi
+            pnpm --filter @repo/app build:web 2>&1 | tee "$OUTPUT_DIR/build-$VARIANT.log"
+            (
+              cd apps/app
+              exec node ./node_modules/vite/bin/vite.js preview --outDir dist/web --host 127.0.0.1 --port 4173 --strictPort
+            ) > "$OUTPUT_DIR/server-$VARIANT.log" 2>&1 &
+            app_pid=$!
+            ready=
+            for _ in {1..60}; do
+              if curl -fsS "$APP_URL" >/dev/null 2>&1; then ready=1; break; fi
+              kill -0 "$app_pid"
+              sleep 1
+            done
+            test "$ready" = 1
+            node "evidence/pr-$PR/record.mjs" 2>&1 | tee "$OUTPUT_DIR/record-$VARIANT.log"
+            if [[ "$PR" == 2192 ]]; then
+              SCENARIO=inflight node "evidence/pr-$PR/record.mjs" 2>&1 | tee "$OUTPUT_DIR/record-$VARIANT-inflight.log"
+            fi
+            stop
+          done
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: feed-pr-${{ matrix.pr }}-video
+          path: ${{ runner.temp }}/feed-evidence
+          if-no-files-found: error
+          retention-days: 14

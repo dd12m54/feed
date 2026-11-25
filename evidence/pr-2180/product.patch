@@ -1,0 +1,13 @@
+--- a/apps/app/src/web/store-world.ts
++++ b/apps/app/src/web/store-world.ts
+@@ -242,7 +242,9 @@
+   const specTab = toSpecTab(tab);
+   sendNav({ type: "selectFeedTab", tab: specTab });
+   sendApp({ type: "selectTab", tab: specTab });
+-  setStoreState({ feedTab: tab });
++  if (s.feedTab !== tab) {
++    setStoreState({ feedTab: tab, feedPosts: [], feedNextCursor: null, feedLoading: true });
++  }
+   await loadFeed(tab);
+ }
+ 
