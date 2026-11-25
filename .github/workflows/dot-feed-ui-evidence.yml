@@ -18,7 +18,7 @@ jobs:
       PR: ${{ matrix.pr }}
       TURBO_TELEMETRY_DISABLED: '1'
       APP_URL: http://127.0.0.1:4173
-      OUTPUT_DIR: ${{ runner.temp }}/feed-evidence
+      OUTPUT_DIR: ui-recordings
       BASE_SHA: bde9ad8eababacfa0ba48f3be76a2b28023a2258
     steps:
       - uses: actions/checkout@v7
@@ -85,6 +85,6 @@ jobs:
         if: always()
         with:
           name: feed-pr-${{ matrix.pr }}-video
-          path: ${{ runner.temp }}/feed-evidence
+          path: ui-recordings
           if-no-files-found: error
           retention-days: 14
