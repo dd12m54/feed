@@ -5,7 +5,7 @@ import type { Root } from "react-dom/client";
 import { expect, it } from "vitest";
 import { setStoreState } from "../src/web/store-core.ts";
 import { storeActions } from "../src/web/store.ts";
-import { flush, installAppTestLifecycle, installMockNetwork, makeRawPost, mountApp } from "./app-test-helpers.tsx";
+import { commonAppResponse, flush, installAppTestLifecycle, installMockNetwork, makeRawPost, mountApp } from "./app-test-helpers.tsx";
 
 const opened: Root[] = [];
 
@@ -50,23 +50,7 @@ function respond(path: string): unknown {
   }
   if (path === "/api/posts/post-a") return { post: postA, replies: [postB] };
   if (path === "/api/posts/post-b") return { post: postB, replies: [] };
-  if (path === "/api/feed") return { items: [], nextCursor: null };
-  if (path === "/api/trending") return { trending: [] };
-  if (path === "/api/articles") return { articles: [] };
-  if (path === "/api/markets") return { predictions: [], perps: [], positions: { predictionPositions: [], perpPositions: [] } };
-  if (path === "/api/world/status") {
-    return {
-      currentDay: 3,
-      currentHour: 14,
-      phase: "active",
-      gameRunning: true,
-      lastTickAt: Date.now(),
-      activeMarketsCount: 0,
-      totalPostsCount: 0,
-      activeActorsCount: 5,
-    };
-  }
-  return undefined;
+  return commonAppResponse(path);
 }
 
 function replyTextarea(container: HTMLElement): HTMLTextAreaElement {

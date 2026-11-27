@@ -90,6 +90,26 @@ export function makeRawProfileBundle(input: {
   };
 }
 
+export function commonAppResponse(path: string): unknown {
+  if (path === "/api/feed" || path === "/api/posts") return { items: [], nextCursor: null };
+  if (path === "/api/trending") return { trending: [] };
+  if (path === "/api/articles") return { articles: [] };
+  if (path === "/api/markets") return { predictions: [], perps: [], positions: { predictionPositions: [], perpPositions: [] } };
+  if (path === "/api/world/status") {
+    return {
+      currentDay: 3,
+      currentHour: 14,
+      phase: "active",
+      gameRunning: true,
+      lastTickAt: Date.now(),
+      activeMarketsCount: 0,
+      totalPostsCount: 0,
+      activeActorsCount: 5,
+    };
+  }
+  return undefined;
+}
+
 export function requestUrl(input: RequestInfo | URL, base = window.location.origin): URL {
   const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
   return new URL(raw, base);
