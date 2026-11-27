@@ -1,5 +1,5 @@
 // spec/social/moderation.md, "Story: Block, mute, follow, and report users or posts"
-import { getStoreSnapshot, setStoreState } from "../src/web/store-core.ts";
+import { getStoreSnapshot, setStoreState, type StoreState } from "../src/web/store-core.ts";
 import { decodePost, type AppPost } from "../src/web/types.ts";
 
 export const aliceViewer = {
@@ -97,5 +97,21 @@ export function resetModerationStore(): void {
     marketSocialPosts: [],
     activeThread: null,
     blockedAccounts: [],
+  });
+}
+
+export function seedFeedStore(patch: Partial<StoreState>): void {
+  setStoreState({
+    route: "Home",
+    feedTab: "latest",
+    feedLoading: false,
+    explore: { trending: [], articles: [], posts: [], accounts: [], actors: [], organizations: [], tags: [] },
+    profileBundle: null,
+    profileReplies: [],
+    profileLikes: [],
+    marketSocialPosts: [],
+    activeThread: null,
+    activePostId: null,
+    ...patch,
   });
 }
