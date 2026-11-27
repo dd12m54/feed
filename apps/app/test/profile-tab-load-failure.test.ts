@@ -2,35 +2,9 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { getStoreSnapshot, setStoreState } from "../src/web/store-core.ts";
 import { loadProfileLikes, loadProfileReplies, loadProfileTrades } from "../src/web/store-world.ts";
-import { aliceViewer, postRaw, resetModerationStore } from "./moderation-fixtures.ts";
+import { aliceViewer, postRaw, profileBundle, resetModerationStore, stubFetch } from "./moderation-fixtures.ts";
 
-function bobBundle() {
-  return {
-    summary: {
-      displayName: "Bob Trader",
-      handle: "bob",
-      followersCount: 6,
-      followingCount: 4,
-      isFollowing: false,
-      isMuted: false,
-      isBlocked: false,
-      isOwnProfile: false,
-    },
-    id: "bob",
-    kind: "user" as const,
-    postsCount: 0,
-    createdAtMs: 0,
-    actorMeta: null,
-    orgMeta: null,
-    viewerFollowedBy: false,
-    viewerBlockedBy: false,
-    tradeCount: null,
-    openPositionCount: null,
-    posts: [],
-    postsNextCursor: null,
-    positions: [],
-  };
-}
+const bobBundle = () => profileBundle("bob", "Bob Trader", 6, 4, false);
 
 function openBobProfile() {
   setStoreState({
@@ -40,13 +14,6 @@ function openBobProfile() {
     route: "Profile",
     errorMessage: null,
     toasts: [],
-  });
-}
-
-function stubFetch(handler: (url: string) => Promise<Response>) {
-  vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    return handler(url);
   });
 }
 

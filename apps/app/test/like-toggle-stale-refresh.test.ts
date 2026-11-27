@@ -6,7 +6,7 @@ import { reconnectRealtime } from "../src/web/store.ts";
 import { loadFeed, openThread, toggleLike } from "../src/web/store-world.ts";
 import { decodePost } from "../src/web/types.ts";
 import { makeViewerSession } from "./app-test-helpers.tsx";
-import { postRaw } from "./moderation-fixtures.ts";
+import { postRaw, seedFeedStore } from "./moderation-fixtures.ts";
 
 const viewer = makeViewerSession();
 
@@ -59,20 +59,7 @@ beforeEach(() => {
     }
     return Promise.resolve(jsonResponse({}));
   }));
-  setStoreState({
-    viewer,
-    route: "Home",
-    feedTab: "latest",
-    feedPosts: [basePost],
-    feedLoading: false,
-    explore: { trending: [], articles: [], posts: [], accounts: [], actors: [], organizations: [], tags: [] },
-    profileBundle: null,
-    profileReplies: [],
-    profileLikes: [],
-    marketSocialPosts: [],
-    activeThread: null,
-    activePostId: null,
-  });
+  seedFeedStore({ viewer, feedPosts: [basePost] });
 });
 
 afterEach(() => {

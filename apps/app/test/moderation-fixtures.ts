@@ -1,5 +1,6 @@
 // spec/social/moderation.md, "Story: Block, mute, follow, and report users or posts"
-import { getStoreSnapshot, setStoreState } from "../src/web/store-core.ts";
+import { vi } from "vitest";
+import { getStoreSnapshot, setStoreState, type StoreState } from "../src/web/store-core.ts";
 import { decodePost, type AppPost } from "../src/web/types.ts";
 
 export const aliceViewer = {
@@ -97,5 +98,56 @@ export function resetModerationStore(): void {
     marketSocialPosts: [],
     activeThread: null,
     blockedAccounts: [],
+  });
+}
+
+export function profileBundle(handle: string, displayName: string, followersCount: number, followingCount: number, isOwnProfile: boolean) {
+  return {
+    summary: {
+      displayName,
+      handle,
+      followersCount,
+      followingCount,
+      isFollowing: false,
+      isMuted: false,
+      isBlocked: false,
+      isOwnProfile,
+    },
+    id: handle,
+    kind: "user" as const,
+    postsCount: 0,
+    createdAtMs: 0,
+    actorMeta: null,
+    orgMeta: null,
+    viewerFollowedBy: false,
+    viewerBlockedBy: false,
+    tradeCount: null,
+    openPositionCount: null,
+    posts: [],
+    postsNextCursor: null,
+    positions: [],
+  };
+}
+
+export function stubFetch(handler: (url: string) => Promise<Response>): void {
+  vi.stubGlobal("fetch", (input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    return handler(url);
+  });
+}
+
+export function seedFeedStore(patch: Partial<StoreState>): void {
+  setStoreState({
+    route: "Home",
+    feedTab: "latest",
+    feedLoading: false,
+    explore: { trending: [], articles: [], posts: [], accounts: [], actors: [], organizations: [], tags: [] },
+    profileBundle: null,
+    profileReplies: [],
+    profileLikes: [],
+    marketSocialPosts: [],
+    activeThread: null,
+    activePostId: null,
+    ...patch,
   });
 }
