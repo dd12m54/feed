@@ -1,0 +1,11 @@
+
+ RUN  v5.1.0 <checkout>/packages/social
+
+ ✓ |node| test/social.test.vibe (17 tests | 16 skipped) 5695ms
+   ✓ paginates older For You fallback posts without changing the recent window (spec/social/posts.md, "Story: Like, repost, follow, and block enforcement") 5692ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 16 skipped (17)
+   Start at  16:32:35
+   Duration  9.19s (tests 63%, transform 30%, import 6%)
+
