@@ -4,19 +4,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getStoreSnapshot, setStoreState } from "../src/web/store-core.ts";
 import { reconnectRealtime } from "../src/web/store.ts";
 import { loadFeed, openThread, toggleLike } from "../src/web/store-world.ts";
-import { decodePost } from "../src/web/types.ts";
-import { makeViewerSession } from "./app-test-helpers.tsx";
-import { postRaw } from "./moderation-fixtures.ts";
+import { makeViewerSession, stubFetchByUrl } from "./app-test-helpers.tsx";
+import { decodedPost, postRaw, seedFeedStore } from "./moderation-fixtures.ts";
 
 const viewer = makeViewerSession();
 
-function decoded(raw: Record<string, unknown>) {
-  const post = decodePost(raw, "alice");
-  if (post === null) throw new Error("test fixture must decode");
-  return post;
-}
-
-const basePost = decoded(postRaw({ id: "post-1", likeCount: 5, likedByViewer: false }));
+const basePost = decodedPost(postRaw({ id: "post-1", likeCount: 5, likedByViewer: false }));
 
 let releaseFeed: ((response: Response) => void) | null = null;
 let releaseThread: ((response: Response) => void) | null = null;
@@ -45,34 +38,20 @@ beforeEach(() => {
   releaseLike = null;
   gateLike = false;
   vi.stubGlobal("EventSource", StubEventSource);
-  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-    if (url.includes("/api/posts/post-1/like")) {
+  stubFetchByUrl((url) => {
+    if (url.pathname === "/api/posts/post-1/like") {
       if (gateLike) return new Promise<Response>((resolve) => { releaseLike = resolve; });
       return Promise.resolve(jsonResponse({ postId: "post-1", liked: true, likeCount: 6 }));
     }
-    if (url.includes("/api/posts/post-1?")) {
+    if (url.pathname === "/api/posts/post-1") {
       return new Promise<Response>((resolve) => { releaseThread = resolve; });
     }
-    if (url.includes("/api/feed")) {
+    if (url.pathname === "/api/feed") {
       return new Promise<Response>((resolve) => { releaseFeed = resolve; });
     }
     return Promise.resolve(jsonResponse({}));
-  }));
-  setStoreState({
-    viewer,
-    route: "Home",
-    feedTab: "latest",
-    feedPosts: [basePost],
-    feedLoading: false,
-    explore: { trending: [], articles: [], posts: [], accounts: [], actors: [], organizations: [], tags: [] },
-    profileBundle: null,
-    profileReplies: [],
-    profileLikes: [],
-    marketSocialPosts: [],
-    activeThread: null,
-    activePostId: null,
   });
+  seedFeedStore({ viewer, feedPosts: [basePost] });
 });
 
 afterEach(() => {
