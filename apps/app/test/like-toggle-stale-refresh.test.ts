@@ -120,7 +120,7 @@ it("keeps a completed like when an earlier thread refresh resolves with a pre-li
   expect(getStoreSnapshot().activeThread?.post.card.likeCount).toBe(6);
 });
 
-it("keeps a live engagement count that landed while the like request was in flight (spec/social/posts.md, \"Story: Like, repost, follow, and block enforcement\")", async () => {
+function startLikeWithLiveCount(): Promise<void> {
   gateLike = true;
   reconnectRealtime();
   const toggle = toggleLike("post-1");
@@ -130,6 +130,11 @@ it("keeps a live engagement count that landed while the like request was in flig
     }),
   );
   expect(getStoreSnapshot().feedPosts[0]?.card.likeCount).toBe(7);
+  return toggle;
+}
+
+it("keeps a live engagement count that landed while the like request was in flight (spec/social/posts.md, \"Story: Like, repost, follow, and block enforcement\")", async () => {
+  const toggle = startLikeWithLiveCount();
   releaseLike?.(jsonResponse({ postId: "post-1", liked: true, likeCount: 6 }));
   await toggle;
   expect(getStoreSnapshot().feedPosts[0]?.card.liked).toBe(true);
@@ -144,15 +149,7 @@ function errorResponse(message: string): Response {
 }
 
 it("keeps a live engagement count that landed while the like request was in flight when the like then fails (spec/social/posts.md, \"Story: Like, repost, follow, and block enforcement\")", async () => {
-  gateLike = true;
-  reconnectRealtime();
-  const toggle = toggleLike("post-1");
-  StubEventSource.latest?.dispatchEvent(
-    new MessageEvent("post.engagement", {
-      data: JSON.stringify({ type: "post.engagement", postId: "post-1", kind: "like", likeCount: 7, repostCount: 0 }),
-    }),
-  );
-  expect(getStoreSnapshot().feedPosts[0]?.card.likeCount).toBe(7);
+  const toggle = startLikeWithLiveCount();
   releaseLike?.(errorResponse("Like failed"));
   await toggle;
   expect(getStoreSnapshot().feedPosts[0]?.card.liked).toBe(false);
