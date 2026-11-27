@@ -5,7 +5,7 @@ import type { Root } from "react-dom/client";
 import { expect, it } from "vitest";
 import { getStoreSnapshot, setStoreState } from "../src/web/store-core.ts";
 import { decodeNotifications } from "../src/web/types.ts";
-import { eventSources, flush, installAppTestLifecycle, installMockNetwork, makeViewerSession, mountApp } from "./app-test-helpers.tsx";
+import { commonAppResponse, eventSources, flush, installAppTestLifecycle, installMockNetwork, makeViewerSession, mountApp } from "./app-test-helpers.tsx";
 
 const opened: Root[] = [];
 
@@ -72,23 +72,7 @@ function respond(path: string): unknown {
     mockState.markReadCalls += 1;
     return { markedCount: 1, unreadCount: 0 };
   }
-  if (path === "/api/feed" || path === "/api/posts") return { items: [], nextCursor: null };
-  if (path === "/api/trending") return { trending: [] };
-  if (path === "/api/articles") return { articles: [] };
-  if (path === "/api/markets") return { predictions: [], perps: [], positions: { predictionPositions: [], perpPositions: [] } };
-  if (path === "/api/world/status") {
-    return {
-      currentDay: 3,
-      currentHour: 14,
-      phase: "active",
-      gameRunning: true,
-      lastTickAt: Date.now(),
-      activeMarketsCount: 0,
-      totalPostsCount: 0,
-      activeActorsCount: 5,
-    };
-  }
-  return undefined;
+  return commonAppResponse(path);
 }
 
 function notificationBadgeText(container: HTMLElement): string | null {
